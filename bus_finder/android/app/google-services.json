@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "866716880036",
+    "project_id": "busfinder-49463",
+    "storage_bucket": "busfinder-49463.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:866716880036:android:fef4df0b9ee96b0651aa31",
+        "android_client_info": {
+          "package_name": "com.example.bus_finder"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "866716880036-slj5pnu7q1b1nemv97pema3jmiud8jbs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0Pz1_wKDkLvo1Q2BcNgK-riizlFvb2bI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "866716880036-slj5pnu7q1b1nemv97pema3jmiud8jbs.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "866716880036-2577pdgn2t283qt3mni4lkul1fb2ki2r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.busFinder",
+                "app_store_id": "123456"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
