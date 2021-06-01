@@ -1,15 +1,11 @@
 import 'package:bus_finder/full_map.dart';
-import 'package:bus_finder/line.dart';
-import 'package:bus_finder/map_ui.dart';
-import 'package:bus_finder/place_geojson.dart';
-import 'package:bus_finder/place_symbol.dart';
-import 'package:bus_finder/route.dart';
-import 'package:bus_finder/simpleDirection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class busRoute extends StatefulWidget {
 
@@ -19,13 +15,67 @@ class busRoute extends StatefulWidget {
   _busRoute createState() => new _busRoute();
 }
 
-List<String> routeList = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16'];
-
 class _busRoute extends State<busRoute> {
-  String busRouteNumber = "";
   int _counter = 0;
   Widget widget1 = Row();
   Widget widget2 = Row();
+  Future<Dt> dt;
+
+  Future<int> getFutureRouteId(String stop) async{
+    Map<String, dynamic> body = {'act': 'searchfull', 'typ': "1", 'key': stop};
+
+    final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
+      body: body,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": "http://timbus.vn/",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // If the server did return a 201 CREATED response,
+      // then parse the JSON.
+      var jsonidinfo = JsonIdInfo.fromJson(jsonDecode(response.body));
+
+      return jsonidinfo.dt.data[0].ObjectId;
+    } else {
+      // If the server did not return a 201 CREATED response,
+      // then throw an exception.
+      return null;
+    }
+  }
+
+  Future<Dt> getFutureRouteInfo(String stop) async{
+    int fid = await getFutureRouteId(stop);
+    Map<String, dynamic> body = {'act': 'fleetdetail', 'fid': fid.toString()};
+
+    final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
+      body: body,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": "http://timbus.vn/",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // If the server did return a 201 CREATED response,
+      // then parse the JSON.
+      var jsoninfo = JsonInfo.fromJson(jsonDecode(response.body));
+
+      return jsoninfo.dt;
+    } else {
+      // If the server did not return a 201 CREATED response,
+      // then throw an exception.
+      return null;
+    }
+  }
+
+  @override
+  void initState() {
+    dt = getFutureRouteInfo(widget.route);
+  }
 
   _navigateBack(BuildContext context) {
     if (Navigator.of(context).canPop()) {
@@ -33,7 +83,7 @@ class _busRoute extends State<busRoute> {
     }
   }
 
-  _navigateToMapUi(BuildContext context) async {
+  _navigateToMapUi(BuildContext context, List<Station> station, String route) async {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
@@ -44,67 +94,11 @@ class _busRoute extends State<busRoute> {
     } */
 
     Navigator.of(context).push(MaterialPageRoute(
-        builder: (BuildContext context) => new FullMapPage(busRouteNumber)));
+        builder: (BuildContext context) => new FullMapPage(station, route)));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.route == "01 - Bến xe Gia Lâm - Bến xe Yên Nghĩa    >") {
-      busRouteNumber = "01";
-    }
-    else if (widget.route == "02 - Bác Cổ - Bến xe Yên Nghĩa    >") {
-      busRouteNumber = "02";
-    }
-    else if (widget.route == "03A - Bến xe Giáp Bát - Bến xe Gia Lâm    >") {
-      busRouteNumber = "03A";
-    }
-    else if (widget.route == "03B - Bến xe Nước Ngầm - Long Biên    >") {
-      busRouteNumber = "03B";
-    }
-    else if (widget.route == "04 - Long Biên - Bệnh viện nội tiết TW CS2    >") {
-      busRouteNumber = "04";
-    }
-    else if (widget.route == "05 - KĐT Linh Đàm - Phú Diễn    >") {
-      busRouteNumber = "05";
-    }
-    else if (widget.route == "06A - Bến xe Giáp Bát - Cầu Giẽ    >") {
-      busRouteNumber = "06A";
-    }
-    else if (widget.route == "06B - Bến xe Giáp Bát - Hồng Vân    >") {
-      busRouteNumber = "06B";
-    }
-    else if (widget.route == "06C - Bến xe Giáp Bát - Phú Minh    >") {
-      busRouteNumber = "06C";
-    }
-    else if (widget.route == "06D - Bến xe Giáp Bát - Tân Dân    >") {
-      busRouteNumber = "06D";
-    }
-    else if (widget.route == "07 - Cầu Giấy - Nội Bài    >") {
-      busRouteNumber = "07";
-    }
-    else if (widget.route == "08A - Long Biên - Đông Mỹ    >") {
-      busRouteNumber = "08A";
-    }
-    else if (widget.route == "08B - Long Biên - Vạn Phúc    >") {
-      busRouteNumber = "08B";
-    }
-    else if (widget.route == "09A - Bờ Hồ - Cầu Giấy    >") {
-      busRouteNumber = "09A";
-    }
-    else if (widget.route == "09B - Bờ Hồ - Bến xe Mỹ Đình    >") {
-      busRouteNumber = "09B";
-    }
-    else if (widget.route == "100 - Long Biên - Khu đô thị Đặng Xá    >") {
-      busRouteNumber = "100";
-    }
-    else if (widget.route == "101A - Bến xe Giáp Bát - Vân Đình    >") {
-      busRouteNumber = "101A";
-    }
-    else if (widget.route == "102 - Bến xe Yên Nghĩa - Vân Đình    >") {
-      busRouteNumber = "102";
-    }
-
-    CollectionReference users = FirebaseFirestore.instance.collection('busRoute');
 
     return Scaffold(
       appBar: AppBar(
@@ -118,30 +112,22 @@ class _busRoute extends State<busRoute> {
         backgroundColor: Colors.green,
         title: Text(widget.route),
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: users.doc(busRouteNumber).get(),
-        builder:
-            (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-
+      body: FutureBuilder<Dt>(
+        future: dt,
+        builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Text("Something went wrong");
+            return Text('${snapshot.error}');
           }
-
-          if (snapshot.hasData && !snapshot.data.exists) {
-            return Text("Document does not exist");
-          }
-
-          if (snapshot.connectionState == ConnectionState.done) {
-            Map<String, dynamic> data = snapshot.data.data();
+          else if (snapshot.hasData) {
             String title = "Tuyến: " + widget.route;
-            title = title.substring(0, title.length -1);
+            var data = snapshot.data;
 
             if (_counter == 0) {
               widget1 = Align(
                 alignment: Alignment.center,
                 child: Padding(
                     padding: EdgeInsets.only(top: 20,bottom: 20),
-                    child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))
+                    child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))
                 ),
               );
 
@@ -166,9 +152,9 @@ class _busRoute extends State<busRoute> {
                     currentIndex: _counter,
                     onTap: (int index) {
                       if (index == 1) {
-                        _navigateToMapUi(context);
-                        setState(() => _counter = index);
+                        _navigateToMapUi(context, data.go.station, widget.route);
                       }
+                      setState(() => _counter = index);
                     },
                     selectedItemColor: Colors.blue,
                     items: const <BottomNavigationBarItem>[
@@ -193,7 +179,7 @@ class _busRoute extends State<busRoute> {
               ],
             );
           }
-          return Text("loading");
+          return CircularProgressIndicator();;
         },
       ),
     );
@@ -203,20 +189,20 @@ class _busRoute extends State<busRoute> {
 class busStop extends StatelessWidget {
   
   busStop(this.data);
-  Map<String, dynamic> data;
+  Dt data;
   
   @override
   Widget build(BuildContext context) {
     return  Container(
-        height: 470,
+        height: 480,
         child: ListView.separated(
           scrollDirection: Axis.vertical,
           shrinkWrap: true,
-          itemCount: routeList.length,
+          itemCount: data.go.station.length,
           itemBuilder: (context, index) {
             return ListTile(
               leading: Icon(Ionicons.arrow_down, color: Colors.green,),
-              title: Text(data[routeList[index]]),
+              title: Text(data.go.station[index].Name),
               trailing: Icon(Ionicons.walk, color: Colors.blue,),
             );
           },
@@ -230,7 +216,7 @@ class busStop extends StatelessWidget {
 
 class routeContent extends StatelessWidget {
   routeContent(this.data);
-  Map<String, dynamic> data;
+  Dt data;
 
   @override
   Widget build(BuildContext context) {
@@ -244,19 +230,19 @@ class routeContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Đơn vị chủ quản: ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data["manager"],style: TextStyle(fontSize: 16),),
+              Text(data.Enterprise,style: TextStyle(fontSize: 16),),
               Divider(),
               Text("Giá vé: ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data["price"],style: TextStyle(fontSize: 16),),
+              Text(data.Cost,style: TextStyle(fontSize: 16),),
               Divider(),
               Text("Tần suất chạy: ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data["frequency"],style: TextStyle(fontSize: 16),),
+              Text(data.Frequency,style: TextStyle(fontSize: 16),),
               Divider(),
               Text("Lộ trình (chiều đi): ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data["go route"],style: TextStyle(fontSize: 16),),
+              Text(data.go.Route,style: TextStyle(fontSize: 16),),
               Divider(),
               Text("Lộ trình (chiều về): ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data["back route"],style: TextStyle(fontSize: 16),),
+              Text(data.re.Route,style: TextStyle(fontSize: 16),),
               Divider(),
             ],
           ),
@@ -268,24 +254,32 @@ class routeContent extends StatelessWidget {
 
 class busTime extends StatelessWidget {
   busTime(this.data, this.direction);
-  Map<String, dynamic> data;
+  Dt data;
   String direction;
 
   @override
   Widget build(BuildContext context) {
-    String title = "",span1 = "", span2 = "", span3 = "";
+    String title = "",span1 = "", span2 = "", span3 = "", time1 = "", time2 = "", time3 = "";
+    var timeList = data.OperationsTime.split("###");
+    var goTimeList = timeList[0].split(";");
+    var backTimeList = timeList[1].split(";");
+
     if (direction == "go") {
-      title = "Chiều Bến xe" + data["stop 1"];
-      span1 = "T2-T6";
-      span2 = "T7";
-      span3 = "CN";
+      title = "Chiều " + data.FirstStation;
+      span1 = goTimeList[0];
+      span2 = goTimeList[1];
+      span3 = goTimeList[2];
     }
     else if (direction == "back") {
-      title = "Chiều Bến xe" + data["stop 2"];
-      span1 = "T2-T6-back";
-      span2 = "T7-back";
-      span3 = "CN-back";
+      title = "Chiều " + data.LastStation;
+      span1 = backTimeList[0];
+      span2 = backTimeList[1];
+      span3 = backTimeList[2];
     }
+    
+    time1 = span1.split("|")[2];
+    time2 = span2.split("|")[2];
+    time3 = span3.split("|")[2];
 
     return Container(
       child: Column(
@@ -297,7 +291,7 @@ class busTime extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Thứ 2-6: "),
-              Text(data[span1], style: TextStyle(fontStyle: FontStyle.italic),)
+              Text(time1, style: TextStyle(fontStyle: FontStyle.italic),)
             ],
           ),
           SizedBox(height: 10),
@@ -305,7 +299,7 @@ class busTime extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Thứ 7: "),
-              Text(data[span2], style: TextStyle(fontStyle: FontStyle.italic),)
+              Text(time2, style: TextStyle(fontStyle: FontStyle.italic),)
             ],
           ),
           SizedBox(height: 10),
@@ -313,7 +307,7 @@ class busTime extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Chủ nhật: "),
-              Text(data[span3], style: TextStyle(fontStyle: FontStyle.italic),)
+              Text(time3, style: TextStyle(fontStyle: FontStyle.italic),)
             ],
           ),
           SizedBox(height: 86,)
@@ -322,3 +316,154 @@ class busTime extends StatelessWidget {
     );
   }
 }
+
+class JsonIdInfo {
+  final IdDt dt;
+
+  JsonIdInfo({this.dt});
+
+  factory JsonIdInfo.fromJson(Map<String, dynamic> json) {
+    return JsonIdInfo(
+      dt: IdDt.fromJson(json["dt"]),
+    );
+  }
+}
+
+class IdDt {
+  final List<IdData> data;
+
+  IdDt({this.data});
+
+  factory IdDt.fromJson(Map<String, dynamic> json) {
+    var list = json['Data'] as List;
+    print(list.runtimeType);
+    List<IdData> dataList = list.map((i) => IdData.fromJson(i)).toList();
+
+    return IdDt(
+      data: dataList
+    );
+  }
+}
+
+class IdData {
+  int ObjectId;
+
+  IdData({this.ObjectId});
+
+  factory IdData.fromJson(Map<String, dynamic> json) {
+
+    return IdData(
+      ObjectId: json["ObjectID"]
+    );
+  }
+}
+
+class JsonInfo {
+  final Dt dt;
+
+  JsonInfo({this.dt});
+  factory JsonInfo.fromJson(Map<String, dynamic> json) {
+    return JsonInfo(
+      dt: Dt.fromJson(json["dt"]),
+    );
+  }
+}
+
+class Dt {
+  String Enterprise;
+  String Code;
+  String Name;
+  String Frequency;
+  String BusCount;
+  String Cost;
+  String FirstStation;
+  String LastStation;
+  Go go;
+  Re re;
+  String OperationsTime;
+
+  Dt({this.Enterprise, this.Code, this.Name, this.Frequency, this.BusCount, this.Cost, this.FirstStation, this.LastStation, this.go, this.re, this.OperationsTime});
+
+  factory Dt.fromJson(Map<String, dynamic> json) {
+    return Dt(
+      Enterprise: json['Enterprise'],
+      Code: json['Code'],
+      Name: json['Name'],
+      Frequency: json['Frequency'],
+      BusCount: json['BusCount'],
+      Cost: json['Cost'],
+      FirstStation: json["FirstStation"],
+      LastStation: json["LastStation"],
+      go: Go.fromJson(json["Go"]),
+      re: Re.fromJson(json["Re"]),
+      OperationsTime: json["OperationsTime"],
+    );
+  }
+}
+
+class Go {
+  String Route;
+  List<Station> station;
+
+  Go({this.Route, this.station});
+
+  factory Go.fromJson(Map<String, dynamic> json) {
+    var list = json['Station'] as List;
+    print(list.runtimeType);
+    List<Station> stationList = list.map((i) => Station.fromJson(i)).toList();
+
+    return Go(
+      Route: json["Route"],
+      station: stationList
+    );
+  }
+}
+
+class Re {
+  String Route;
+  List<Station> station;
+
+  Re({this.Route, this.station});
+
+  factory Re.fromJson(Map<String, dynamic> json) {
+    var list = json['Station'] as List;
+    print(list.runtimeType);
+    List<Station> stationList = list.map((i) => Station.fromJson(i)).toList();
+
+    return Re(
+        Route: json["Route"],
+        station: stationList
+    );
+  }
+}
+
+class Station {
+  String Name;
+  String FleetOver;
+  Geo geo;
+
+  Station({this.Name, this.FleetOver, this.geo});
+  factory Station.fromJson(Map<String, dynamic> json) {
+    return Station(
+      Name: json["Name"],
+      FleetOver: json['FleetOver'],
+      geo: Geo.fromJson(json["Geo"])
+    );
+  }
+}
+
+class Geo {
+  double Lat;
+  double Lng;
+
+  Geo({this.Lat, this.Lng});
+
+  factory Geo.fromJson(Map<String, dynamic> json) {
+    return Geo(
+        Lat: json["Lat"],
+        Lng: json["Lng"]
+    );
+  }
+}
+
+

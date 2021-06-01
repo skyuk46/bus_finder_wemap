@@ -53,6 +53,9 @@ flutter:
      - images/Bus_icon.png
      - images/destination.png
      - images/mark-location.png
+     - images/bus_stop_icon.jpg
+     - assets/busstop.json
+     - assets/bus.json
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
 

@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:wemapgl/wemapgl.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:bus_finder/busRoute.dart';
 
 import 'ePage.dart';
 
 class FullMapPage extends EPage{
-  FullMapPage(this.busRouteNumber) : super(const Icon(Icons.map), 'Full screen map');
-  String busRouteNumber = "";
+  FullMapPage(this.station, this.route) : super(const Icon(Icons.map), 'Full screen map');
+  List<Station> station;
+  String route;
 
   @override
   Widget build(BuildContext context) {
-    return FullMap(this.busRouteNumber);
+    return FullMap(this.station, this.route);
   }
 }
 
 class FullMap extends StatefulWidget {
-  FullMap(this.busRouteNumber);
-  String busRouteNumber;
+  FullMap(this.station, this.route);
+  List<Station> station;
+  String route;
 
   @override
   State createState() => FullMapState();
@@ -39,6 +42,13 @@ class FullMapState extends State<FullMap> {
   LatLng start;
   LatLng destination;
   bool isMarked = false;
+
+  @override
+  void initState() {
+    int stationLenght = widget.station.length;
+    start = LatLng(widget.station[0].geo.Lat, widget.station[0].geo.Lng);
+    destination = LatLng(widget.station[stationLenght - 1].geo.Lat, widget.station[stationLenght - 1].geo.Lng);
+  }
 
   void _onMapCreated(WeMapController controller) {
     mapController = controller;
@@ -66,12 +76,13 @@ class FullMapState extends State<FullMap> {
     mapController.updateSymbol(_selectedSymbol, changes);
   }
 
-  void _add(String iconImage) {
+  void _add(String iconImage, LatLng point) {
+
     mapController.addSymbol(
       SymbolOptions(
         geometry: LatLng(
-          center.latitude,
-          center.longitude,
+          point.latitude,
+          point.longitude,
         ),
         iconImage: iconImage,
         iconSize: 0.3,
@@ -82,7 +93,10 @@ class FullMapState extends State<FullMap> {
   void onStyleLoadedCallback() async {
     List<LatLng> points = [];
 
-    points.add(start); //origin Point
+    points.add(start);
+    for (var i = 1; i < widget.station.length - 1; i++) {
+      points.add(LatLng(widget.station[i].geo.Lat, widget.station[i].geo.Lng));
+    }
     points.add(destination); //destination Point
 
     final json = await directionAPI.getResponseMultiRoute(0, points); //0 = car, 1 = bike, 2 = foot
@@ -106,103 +120,14 @@ class FullMapState extends State<FullMap> {
 
   @override
   Widget build(BuildContext context) {
-    String busRoute = "";
-    if (widget.busRouteNumber == "01") {
-      start = LatLng(21.04863, 105.87832);
-      destination = LatLng(20.95002, 105.74746);
-      busRoute = "01 - Yên Nghĩa - Gia Lâm";
-    }
-    else if (widget.busRouteNumber == "02") {
-      start = LatLng(21.02556, 105.85947);
-      destination = LatLng(20.95002, 105.74746);
-      busRoute = "02 - Bác Cổ - Yên Nghĩa";
-    }
-    else if (widget.busRouteNumber == "03A") {
-      start = LatLng(20.98035, 105.84178);
-      destination = LatLng(20.95002, 105.74746);
-      busRoute = "03A - Giáp Bát - Gia Lâm";
-    }
-    else if (widget.busRouteNumber == "03B") {
-      start = LatLng(20.96509, 105.84306);
-      destination = LatLng(21.03844, 105.89592);
-      busRoute = "03B - Nước Ngầm - Long Biên";
-    }
-    else if (widget.busRouteNumber == "04") {
-      start = LatLng(21.03844, 105.89592);
-      destination = LatLng(21.01341, 105.81485);
-      busRoute = "04 - Long Biên - Bệnh viện nội tiết TW CS2";
-    }
-    else if (widget.busRouteNumber == "05") {
-      start = LatLng(20.96610, 105.83431);
-      destination = LatLng(21.04285, 105.75962);
-      busRoute = "05 - KĐT Linh Đàm - Phú Diễn";
-    }
-    else if (widget.busRouteNumber == "06A") {
-      start = LatLng(20.98035, 105.84178);
-      destination = LatLng(20.84646, 105.88556);
-      busRoute = "06A - Giáp Bát - Cầu Giẽ";
-    }
-    else if (widget.busRouteNumber == "06B") {
-      start = LatLng(20.98035, 105.84178);
-      destination = LatLng(20.87580, 105.90764);
-      busRoute = "06B - Giáp Bát - Hồng Vân";
-    }
-    else if (widget.busRouteNumber == "06C") {
-      start = LatLng(20.98035, 105.84178);
-      destination = LatLng(20.78112, 105.91660);
-      busRoute = "06C - Giáp Bát - Phú Minh";
-    }
-    else if (widget.busRouteNumber == "06D") {
-      start = LatLng(20.98035, 105.84178);
-      destination = LatLng(20.74233, 105.88029);
-      busRoute = "06D - Giáp Bát - Tân Dân";
-    }
-    else if (widget.busRouteNumber == "07") {
-      start = LatLng(21.03484, 105.79613);
-      destination = LatLng(21.21890, 105.80421);
-      busRoute = "07 - Cầu Giấy - Nội Bài";
-    }
-    else if (widget.busRouteNumber == "08A") {
-      start = LatLng(21.04277, 105.84825);
-      destination = LatLng(20.91671, 105.87242);
-      busRoute = "08A - Long Biên - Đông Mỹ";
-    }
-    else if (widget.busRouteNumber == "08B") {
-      start = LatLng(21.04277, 105.84825);
-      destination = LatLng(20.91168, 105.89127);
-      busRoute = "08B - Long Biên - Vạn Phúc";
-    }
-    else if (widget.busRouteNumber == "09A") {
-      start = LatLng(21.02865, 105.85125);
-      destination = LatLng(21.03484, 105.79613);
-      busRoute = "09A - Bờ Hồ - Cầu Giấy";
-    }
-    else if (widget.busRouteNumber == "09B") {
-      start = LatLng(21.02865, 105.85125);
-      destination = LatLng(21.03593, 105.77969);
-      busRoute = "09B - Bờ Hồ - Mỹ Đình";
-    }
-    else if (widget.busRouteNumber == "100") {
-      start = LatLng(21.04277, 105.84825);
-      destination = LatLng(21.01637, 105.95220);
-      busRoute = "100 - Long Biên - Khu đô thị Đặng Xá";
-    }
-    else if (widget.busRouteNumber == "101A") {
-      start = LatLng(20.98035, 105.84178);
-      destination = LatLng(20.73306, 105.77041);
-      busRoute = "101A - Giáp Bát - Vân Đình";
-    }
-    else if (widget.busRouteNumber == "102") {
-      start = LatLng(20.95002, 105.74746);
-      destination = LatLng(20.73306, 105.77041);
-      busRoute = "102 - Yên Nghĩa - Vân Đình";
-    }
+    String busRoute = widget.route;
 
     if (count > 0 && isMarked == false) {
-      center = start;
-      _add("images/mark-location.png");
-      center = destination;
-      _add("images/mark-location.png");
+      _add("images/mark-location.png", start);
+      _add("images/mark-location.png", destination);
+      for (var i = 1; i< widget.station.length - 1; i++) {
+        _add("images/mark-location.png", LatLng(widget.station[i].geo.Lat, widget.station[i].geo.Lng));
+      }
       isMarked = true;
     }
 
@@ -221,7 +146,7 @@ class FullMapState extends State<FullMap> {
             onStyleLoadedCallback: onStyleLoadedCallback,
             initialCameraPosition: CameraPosition(
               target: start,
-              zoom: 14.0,
+              zoom: 16.0,
             ),
             destinationIcon: "images/destination.png",
           ),
@@ -253,7 +178,7 @@ class FullMapState extends State<FullMap> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Tuyến " + busRoute,style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),),
+                    Text(busRoute,style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -289,3 +214,4 @@ class FullMapState extends State<FullMap> {
     );
   }
 }
+
