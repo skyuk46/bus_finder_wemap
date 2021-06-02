@@ -1,3 +1,4 @@
+import 'package:bus_finder/marked_stop.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
@@ -19,6 +20,8 @@ class stopInfo extends StatefulWidget {
 class _stopInfo extends State<stopInfo> {
   Future<String> fleetover;
   List<String> busRouteList;
+  double stopLat;
+  double stopLng;
 
   void loadJsonRouteData() async {
     var jsonText = await rootBundle.loadString('assets/bus.json');
@@ -44,6 +47,8 @@ class _stopInfo extends State<stopInfo> {
       // If the server did return a 201 CREATED response,
       // then parse the JSON.
       var jsoninfo = findStop.JsonInfo.fromJson(jsonDecode(response.body));
+      stopLat = jsoninfo.dt.data[0].geo.Lat;
+      stopLng = jsoninfo.dt.data[0].geo.Lng;
 
       return jsoninfo.dt.data[0].FleetOver;
     } else {
@@ -51,6 +56,15 @@ class _stopInfo extends State<stopInfo> {
       // then throw an exception.
       return null;
     }
+  }
+
+  void _navigateToMarkedStopMap(BuildContext context) {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+
+    Navigator.of(context).push(
+        MaterialPageRoute(builder: (BuildContext context) => new MarkedStopPage(this.stopLat, this.stopLng)));
   }
 
   @override
@@ -118,6 +132,16 @@ class _stopInfo extends State<stopInfo> {
                             return Divider();
                           },
                         )
+                    ),
+                  ),
+                  Divider(),
+                  Align(
+                    alignment: Alignment.center,
+                    child: InkWell(
+                      child: Text("Hiển thị trên bản đồ", style: TextStyle(color: Colors.lightBlueAccent),),
+                      onTap: () {
+                        _navigateToMarkedStopMap(context);
+                      },
                     ),
                   )
                 ],
