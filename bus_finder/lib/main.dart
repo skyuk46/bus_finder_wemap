@@ -52,44 +52,27 @@ List<String> bus_route_base = [];
 
 List<String> bus_route_search = [];
 
-List<String> bus_stop_base = [
-  'Phố cầu    >',
-  'Dốc Vệ Tinh        >',
-  'Bệnh viện đa khoa Thăng Long    >',
-  'Đại sứ quán Nhật Bản             >',
-  'Đình làng Bùng    >',
-  'Ngã 3 Đỗ Xá    >',
-  'Làng Lương Xá  >',
-  'Bệnh viện K Hà Nội    >',
-  'Nhà thi đấu Hà Đông   >',
-  'Thôn Xuân Tình        >',
-  'Đình Nam Dư Hạ        >',
-  'Bưu cục Trâu Quỳ      >',
-  'Đại học Hà Nội        >',
-  'Nhà D10        >',
-];
-List<String> bus_stop_search = [
-  'Phố Cầu    >',
-  'Dốc Vệ Tinh        >',
-  'Bệnh viện đa khoa Thăng Long    >',
-  'Đại sứ quán Nhật Bản             >',
-  'Đình làng Bùng    >',
-  'Ngã 3 Đỗ Xá    >',
-  'Làng Lương Xá  >',
-  'Bệnh viện K Hà Nội    >',
-  'Nhà thi đấu Hà Đông   >',
-  'Thôn Xuân Tình        >',
-  'Đình Nam Dư Hạ        >',
-  'Bưu cục Trâu Quỳ      >',
-  'Đại học Hà Nội        >',
-  'Nhà D10        >',
-];
+List<String> bus_stop_base = [];
+List<String> bus_stop_search = [];
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   Future<Data> _futureData;
 
-  Future<String> loadJsonData() async {
+  Future<String> loadJsonStopData() async {
+    var jsonText = await rootBundle.loadString('assets/busstop.json');
+    setState(() {
+      final duplicateItems = jsonDecode(jsonText)['busStop'];
+      bus_stop_base = duplicateItems != null ? List.from(duplicateItems) : null;
+      for (var x in bus_stop_base) {
+        bus_stop_search.add(x);
+      }
+    });
+
+    return 'success';
+  }
+
+  Future<String> loadJsonRouteData() async {
     var jsonText = await rootBundle.loadString('assets/bus.json');
     setState(() {
       final duplicateItems = jsonDecode(jsonText)['busRoute'];
@@ -98,10 +81,13 @@ class _MyHomePageState extends State<MyHomePage> {
         bus_route_search.add(x);
       }
     });
+
+    return 'success';
   }
 
   void initState() {
-    loadJsonData();
+    loadJsonRouteData();
+    loadJsonStopData();
   }
 
   void _incrementCounter() {
@@ -198,7 +184,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           Container(
-            height: 200,
             child: (_futureData == null) ? Column() : buildFutureBuilder(),
           ),
         ],
@@ -333,34 +318,35 @@ class _MyHomePageState extends State<MyHomePage> {
           widget1,
           widget2,
           widget3,
-          BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              currentIndex: _counter,
-              onTap: (int index) {
-                if (index == 2) {
-                  _navigateToFindStop(context);
-                }
-                setState(() => _counter = index);
-              },
-              selectedItemColor: Colors.green,
-              items: const <BottomNavigationBarItem>[
-                BottomNavigationBarItem(
-                  icon: Icon(Ionicons.bus),
-                  label: 'Tuyến Bus',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Ionicons.search),
-                  label: "Tìm đường",
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Ionicons.map),
-                  label: "Bản đồ",
-                ),
-                BottomNavigationBarItem(
-                    icon: Icon(Ionicons.walk_outline), label: "Điểm dừng"),
-              ])
         ],
       ),
+        bottomNavigationBar:  BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _counter,
+            onTap: (int index) {
+              if (index == 2) {
+                _navigateToFindStop(context);
+              }
+              setState(() => _counter = index);
+            },
+            selectedItemColor: Colors.green,
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Ionicons.bus),
+                label: 'Tuyến Bus',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Ionicons.search),
+                label: "Tìm đường",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Ionicons.map),
+                label: "Bản đồ",
+              ),
+              BottomNavigationBarItem(
+                  icon: Icon(Ionicons.walk_outline), label: "Điểm dừng"),
+            ]
+        )
     );
   }
 
@@ -369,11 +355,14 @@ class _MyHomePageState extends State<MyHomePage> {
       future: _futureData,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          return Column(
-            children: [
-              Text("Quãng đường cần đi:   " + snapshot.data.distance.toString() + " km", style: TextStyle(fontSize: 18),),
-              Text("Đầu tiên đi tới: " + snapshot.data.path[0].name, style: TextStyle(fontSize: 18),)
-            ],
+          return Padding(
+            padding: EdgeInsets.only(left: 30, right: 30),
+            child: Wrap(
+              children: [
+                Text("Quãng đường cần đi:   " + snapshot.data.distance.toString() + " km", style: TextStyle(fontSize: 18),),
+                Text("Đầu tiên đi tới: " + snapshot.data.path[0].name, style: TextStyle(fontSize: 18),)
+              ],
+            ),
           );
         } else if (snapshot.hasError) {
           return Text('${snapshot.error}');
@@ -498,7 +487,6 @@ class _BusRouteList extends State<BusRouteList> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 460,
       child: SingleChildScrollView(
           scrollDirection: Axis.vertical,
           child: Column(
@@ -568,7 +556,6 @@ class BusStopList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 460,
       child: SingleChildScrollView(
           scrollDirection: Axis.vertical,
           child: Column(

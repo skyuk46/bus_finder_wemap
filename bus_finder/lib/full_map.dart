@@ -123,6 +123,7 @@ class FullMapState extends State<FullMap> {
     String busRoute = widget.route;
 
     if (count > 0 && isMarked == false) {
+      print("true");
       _add("images/mark-location.png", start);
       _add("images/mark-location.png", destination);
       for (var i = 1; i< widget.station.length - 1; i++) {
@@ -145,7 +146,7 @@ class FullMapState extends State<FullMap> {
             onMapCreated: _onMapCreated,
             onStyleLoadedCallback: onStyleLoadedCallback,
             initialCameraPosition: CameraPosition(
-              target: start,
+              target: destination,
               zoom: 16.0,
             ),
             destinationIcon: "images/destination.png",

@@ -126,7 +126,7 @@ class _busRoute extends State<busRoute> {
               widget1 = Align(
                 alignment: Alignment.center,
                 child: Padding(
-                    padding: EdgeInsets.only(top: 20,bottom: 20),
+                    padding: EdgeInsets.only(top: 20,bottom: 10),
                     child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))
                 ),
               );
@@ -147,41 +147,54 @@ class _busRoute extends State<busRoute> {
                 widget1,
                 Divider(),
                 widget2,
-                BottomNavigationBar(
-                    type: BottomNavigationBarType.fixed,
-                    currentIndex: _counter,
-                    onTap: (int index) {
-                      if (index == 1) {
-                        _navigateToMapUi(context, data.go.station, widget.route);
-                      }
-                      setState(() => _counter = index);
-                    },
-                    selectedItemColor: Colors.blue,
-                    items: const <BottomNavigationBarItem>[
-                      BottomNavigationBarItem(
-                        icon: Icon(Ionicons.storefront_outline),
-                        label: 'Điểm dừng',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Ionicons.map),
-                        label: "Bản đồ",
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Ionicons.bus),
-                        label: "Lộ trình",
-                      ),
-                      BottomNavigationBarItem(
-                          icon: Icon(Ionicons.alarm_outline),
-                          label: "Giờ"
-                      ),
-                    ]
-                )
               ],
             );
           }
-          return CircularProgressIndicator();;
+          return CircularProgressIndicator();
         },
       ),
+      bottomNavigationBar: FutureBuilder<Dt>(
+        future: dt,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('${snapshot.error}');
+          }
+          else if (snapshot.hasData) {
+            var data = snapshot.data;
+
+            return  BottomNavigationBar(
+                type: BottomNavigationBarType.fixed,
+                currentIndex: _counter,
+                onTap: (int index) {
+                  if (index == 1) {
+                    _navigateToMapUi(context, data.go.station, widget.route);
+                  }
+                  setState(() => _counter = index);
+                },
+                selectedItemColor: Colors.blue,
+                items: const <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: Icon(Ionicons.storefront_outline),
+                    label: 'Điểm dừng',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Ionicons.map),
+                    label: "Bản đồ",
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Ionicons.bus),
+                    label: "Lộ trình",
+                  ),
+                  BottomNavigationBarItem(
+                      icon: Icon(Ionicons.alarm_outline),
+                      label: "Giờ"
+                  ),
+                ]
+            );
+          }
+          return Center(child: CircularProgressIndicator(),);
+        }
+      )
     );
   }
 }
@@ -194,7 +207,6 @@ class busStop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return  Container(
-        height: 480,
         child: ListView.separated(
           scrollDirection: Axis.vertical,
           shrinkWrap: true,
@@ -221,7 +233,6 @@ class routeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 530,
       child: Padding(
         padding: EdgeInsets.only(right: 20, left: 20),
         child: SingleChildScrollView(

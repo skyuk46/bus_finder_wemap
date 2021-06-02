@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bus_finder/busRoute.dart';
+import 'package:bus_finder/find_stop.dart' as findStop;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 
 class stopInfo extends StatefulWidget {
 
@@ -13,75 +17,67 @@ class stopInfo extends StatefulWidget {
 }
 
 class _stopInfo extends State<stopInfo> {
-  CollectionReference users = FirebaseFirestore.instance.collection('busStop');
+  Future<String> fleetover;
+  List<String> busRouteList;
+
+  void loadJsonRouteData() async {
+    var jsonText = await rootBundle.loadString('assets/bus.json');
+    setState(() {
+      final duplicateItems = jsonDecode(jsonText)['busRoute'];
+      busRouteList = duplicateItems != null ? List.from(duplicateItems) : null;
+    });
+  }
+
+  Future<String> getFutureStopFleetOver(String stop) async{
+    Map<String, dynamic> body = {'act': 'searchfull', 'typ': "2", 'key': stop};
+
+    final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
+      body: body,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": "http://timbus.vn/",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // If the server did return a 201 CREATED response,
+      // then parse the JSON.
+      var jsoninfo = findStop.JsonInfo.fromJson(jsonDecode(response.body));
+
+      return jsoninfo.dt.data[0].FleetOver;
+    } else {
+      // If the server did not return a 201 CREATED response,
+      // then throw an exception.
+      return null;
+    }
+  }
+
+  @override
+  void initState() {
+    loadJsonRouteData();
+    fleetover = getFutureStopFleetOver(widget.stop);
+  }
 
   @override
   Widget build(BuildContext context) {
-    String stop = "";
-    if (widget.stop == "Phố Cầu    >") {
-      stop = "Phố Cầu";
-    }
-    else if (widget.stop == "Dốc Vệ Tinh        >") {
-      stop = "Dốc Vệ Tinh";
-    }
-    else if (widget.stop == "Bệnh viện đa khoa Thăng Long    >") {
-      stop = "BVĐK Thăng Long";
-    }
-    else if (widget.stop == "Đại sứ quán Nhật Bản             >") {
-      stop = "Sứ quán Nhật Bản";
-    }
-    else if (widget.stop == "Đình làng Bùng    >") {
-      stop = 'Đình làng Bùng';
-    }
-    else if (widget.stop == "Ngã 3 Đỗ Xá    >") {
-      stop = 'Ngã 3 Đỗ Xá';
-    }
-    else if (widget.stop == "Làng Lương Xá  >") {
-      stop = 'Làng Lương Xá';
-    }
-    else if (widget.stop == "Bệnh viện K Hà Nội    >") {
-      stop = "Bệnh viện K Hà Nội";
-    }
-    else if (widget.stop == "Nhà thi đấu Hà Đông   >") {
-      stop = "Nhà thi đấu Hà Đông";
-    }
-    else if (widget.stop == "Thôn Xuân Tình        >") {
-      stop = "Thôn Xuân Tình";
-    }
-    else if (widget.stop ==   'Đình Nam Dư Hạ        >'){
-      stop = "Đình Nam Dư Hạ";
-    }
-    else if (widget.stop == "Bưu cục Trâu Quỳ      >") {
-      stop = "Bưu cục Trâu Quỳ";
-    }
-    else if (widget.stop == "Đại học Hà Nội        >") {
-      stop = "Đại học Hà Nội";
-    }
-    else if (widget.stop == "Nhà D10        >") {
-      stop = "Nhà D10";
-    }
 
-    return FutureBuilder<DocumentSnapshot>(
-        future: users.doc(stop).get(),
-        builder:
-            (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+    return FutureBuilder<String>(
+        future: fleetover,
+        builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Text("Something went wrong");
+            return Text('${snapshot.error}');
           }
-
-          if (snapshot.hasData && !snapshot.data.exists) {
-            return Text("Document does not exist");
-          }
-
-          if (snapshot.connectionState == ConnectionState.done) {
-            Map<String, dynamic> data = snapshot.data.data();
+          else if (snapshot.hasData) {
+            var data = snapshot.data;
+            List<String> fleetsList = data.split(",");
             return AlertDialog(
-              title: Text(data["title"], textAlign: TextAlign.center,),
+              title: Text(widget.stop, textAlign: TextAlign.center,),
               content: Wrap(
                 children: [
                   Align(
                     alignment: Alignment.center,
-                    child: Text("Có " + data["numberOfRoute"] + " tuyến đi qua", style: TextStyle(fontWeight: FontWeight.bold),),
+                    child: Text("Có " + fleetsList.length.toString() + " tuyến đi qua", style: TextStyle(fontWeight: FontWeight.bold),),
                   ),
                   Align(
                     alignment: Alignment.center,
@@ -91,8 +87,16 @@ class _stopInfo extends State<stopInfo> {
                         child: ListView.separated(
                           scrollDirection: Axis.vertical,
                           shrinkWrap: true,
-                          itemCount: int.parse(data["numberOfRoute"]),
+                          itemCount: fleetsList.length,
                           itemBuilder: (context, index) {
+                            String route;
+                            for (var x in busRouteList) {
+                              if (x.contains(fleetsList[index]))   {
+                                route = x;
+                                break;
+                              }
+                            };
+
                             return ListTile(
                               leading: Text((index + 1).toString()),
                               title: InkWell(
@@ -102,10 +106,10 @@ class _stopInfo extends State<stopInfo> {
                                   }
 
                                   Navigator.of(context).push(MaterialPageRoute(
-                                      builder: (BuildContext context) => new busRoute(data["busRoute" + (index + 1).toString()]))
+                                      builder: (BuildContext context) => new busRoute(route))
                                   );
                                 },
-                                child: Text("Xem tuyến " + data[(index + 1).toString()]),
+                                child: Text("Xem tuyến " + fleetsList[index]),
                               ),
                               trailing: Icon(Ionicons.bus, color: Colors.blue,),
                             );

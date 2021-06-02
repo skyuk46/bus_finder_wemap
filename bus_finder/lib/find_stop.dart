@@ -310,12 +310,14 @@ class Dt {
 
 class Data {
   final Geo geo;
+  final String FleetOver;
 
-  Data({this.geo});
+  Data({this.geo, this.FleetOver});
 
   factory Data.fromJson(Map<String, dynamic> json) {
     return Data(
       geo: Geo.fromJson(json["Geo"]),
+      FleetOver: json["FleetOver"]
     );
   }
 }
