@@ -130,18 +130,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<List<Dt>> getData() async {
-    String slat = start.location.latitude.toString();
     String slng = start.location.longitude.toString();
+    String slat = start.location.latitude.toString();
+    String elng = destination.location.longitude.toString();
+    String elat = destination.location.latitude.toString();
     Map<String, String> body = {
       'act': 'route',
       'opts': "2",
       'slng' : slng,
       'slat' : slat,
-      'elng' : destination.location.longitude.toString(),
-      'elat' : destination.location.latitude.toString(),
+      'elng' : elng,
+      'elat' : elat,
     };
 
-    final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
+    final response = await http.post("http://timbus.vn/Engine/Business/Route/action.ashx",
       body: body,
       headers: {
         "Accept": "application/json",
@@ -153,7 +155,6 @@ class _MyHomePageState extends State<MyHomePage> {
     if (response.statusCode == 200) {
       // If the server did return a 201 CREATED response,
       // then parse the JSON.
-      print(response.body);
       var jsoninfo = JsonInfo.fromJson(jsonDecode(response.body));
 
       return jsoninfo.dt;
@@ -381,25 +382,31 @@ class _MyHomePageState extends State<MyHomePage> {
                         color: Colors.grey,
                         child: Row(
                           children: [
-                            Text("PA." + data.indexOf(path).toString(), style: TextStyle(color: Colors.blueAccent),),
+                            Container(
+                              color: Colors.blue,
+                              child: Text("PA." + data.indexOf(path).toString() + " ", style: TextStyle(color: Colors.white),),
+                            ),
                             for (var result in path.result)
                               Wrap(
                                 children: [
-                                  Icon(Ionicons.car_outline),
+                                  Icon(Ionicons.car_outline, size: 20,),
                                   for (var fleet in result.Fleet)
-                                    Text(fleet),
+                                    (result.Fleet.length > 1) ? Text(fleet + ", ") : Text(fleet + " ")
                                 ],
                               ),
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: Text((path.DistTotal - path.DistWalk).toString() + "m"),
+                            Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text((path.DistTotal - path.DistWalk).toString() + "m"),
+                                )
                             )
                           ],
                         ),
                       ),
-                      Text(path.start.Address),
+                      Text(start.placeName),
                       for (var result in path.result)
-                        Wrap(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Divider(),
                             Text(result.start.Name, style: TextStyle(color: Colors.green),),
@@ -408,14 +415,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                 Icon(Ionicons.bus),
                                 Text("Đi bus tuyến "),
                                 for (var fleet in result.Fleet)
-                                  Text(fleet, style: TextStyle(fontWeight: FontWeight.bold),)
+                                  Text(fleet + ", ", style: TextStyle(fontWeight: FontWeight.bold),)
                               ],
                             ),
                             Text("Khoảng " + result.Distance.toString() + "m ~ " + result.Time.toString() + " giây" ),
                             Text(result.end.Name, style: TextStyle(color: Colors.red),),
                           ],
                         ),
-                      Text(path.end.Address),
+                      Divider(),
+                      Text(destination.placeName),
                       Divider()
                     ],
                   )
@@ -517,7 +525,7 @@ class Geo {
 }
 
 class Result {
-  List<String> Fleet;
+  List<dynamic> Fleet;
   ResultStart start;
   ResultEnd end;
   int DistanceWalk;
@@ -529,7 +537,7 @@ class Result {
   factory Result.fromJson(Map<String, dynamic> json) {
     var list = json['Fleet'] as List;
     print(list.runtimeType);
-    List<String> fleetList = list.map((i) => i).toList();
+    List<dynamic> fleetList = list.map((i) => i).toList();
     return Result(
       Fleet: fleetList,
       start: ResultStart.fromJson(json["Start"]),
