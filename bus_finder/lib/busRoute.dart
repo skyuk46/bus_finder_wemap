@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class busRoute extends StatefulWidget {
-
   busRoute(this.route);
   String route;
 
@@ -21,10 +20,11 @@ class _busRoute extends State<busRoute> {
   Widget widget2 = Row();
   Future<Dt> dt;
 
-  Future<int> getFutureRouteId(String stop) async{
+  Future<int> getFutureRouteId(String stop) async {
     Map<String, dynamic> body = {'act': 'searchfull', 'typ': "1", 'key': stop};
 
-    final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
+    final response = await http.post(
+      "http://timbus.vn/Engine/Business/Search/action.ashx",
       body: body,
       headers: {
         "Accept": "application/json",
@@ -46,11 +46,12 @@ class _busRoute extends State<busRoute> {
     }
   }
 
-  Future<Dt> getFutureRouteInfo(String stop) async{
+  Future<Dt> getFutureRouteInfo(String stop) async {
     int fid = await getFutureRouteId(stop);
     Map<String, dynamic> body = {'act': 'fleetdetail', 'fid': fid.toString()};
 
-    final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
+    final response = await http.post(
+      "http://timbus.vn/Engine/Business/Search/action.ashx",
       body: body,
       headers: {
         "Accept": "application/json",
@@ -83,7 +84,8 @@ class _busRoute extends State<busRoute> {
     }
   }
 
-  _navigateToMapUi(BuildContext context, List<Station> station, String route) async {
+  _navigateToMapUi(
+      BuildContext context, List<Station> station, String route) async {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
@@ -99,129 +101,132 @@ class _busRoute extends State<busRoute> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(Ionicons.arrow_back),
-            onPressed: () => _navigateBack(context),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: Icon(Ionicons.arrow_back),
+              onPressed: () => _navigateBack(context),
+            ),
           ),
+          backgroundColor: Colors.green,
+          title: Text(widget.route),
         ),
-        backgroundColor: Colors.green,
-        title: Text(widget.route),
-      ),
-      body: FutureBuilder<Dt>(
-        future: dt,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('${snapshot.error}');
-          }
-          else if (snapshot.hasData) {
-            String title = "Tuyến: " + widget.route;
-            var data = snapshot.data;
+        body: FutureBuilder<Dt>(
+          future: dt,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text('${snapshot.error}');
+            } else if (snapshot.hasData) {
+              String title = "Tuyến: " + widget.route;
+              var data = snapshot.data;
 
-            if (_counter == 0) {
-              widget1 = Align(
-                alignment: Alignment.center,
-                child: Padding(
-                    padding: EdgeInsets.only(top: 20,bottom: 10),
-                    child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))
-                ),
+              if (_counter == 0) {
+                widget1 = Align(
+                  alignment: Alignment.center,
+                  child: Padding(
+                      padding: EdgeInsets.only(top: 20, bottom: 10),
+                      child: Text(title,
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold))),
+                );
+
+                widget2 = busStop(data);
+              } else if (_counter == 2) {
+                widget1 = Container();
+                widget2 = routeContent(data);
+              } else if (_counter == 3) {
+                widget1 = busTime(data, "go");
+                widget2 = busTime(data, "back");
+              }
+
+              return ListView(
+                shrinkWrap: true,
+                children: <Widget>[
+                  widget1,
+                  Divider(),
+                  widget2,
+                ],
               );
+            }
+            return CircularProgressIndicator();
+          },
+        ),
+        bottomNavigationBar: FutureBuilder<Dt>(
+            future: dt,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Text('${snapshot.error}');
+              } else if (snapshot.hasData) {
+                var data = snapshot.data;
 
-              widget2 = busStop(data);
-            }
-            else if (_counter == 2) {
-              widget1 = Container();
-              widget2 = routeContent(data);
-            }
-            else if (_counter == 3) {
-              widget1 = busTime(data, "go");
-              widget2 = busTime(data, "back");
-            }
-            
-            return ListView(
-              children: <Widget>[
-                widget1,
-                Divider(),
-                widget2,
-              ],
-            );
-          }
-          return CircularProgressIndicator();
-        },
-      ),
-      bottomNavigationBar: FutureBuilder<Dt>(
-        future: dt,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('${snapshot.error}');
-          }
-          else if (snapshot.hasData) {
-            var data = snapshot.data;
-
-            return  BottomNavigationBar(
-                type: BottomNavigationBarType.fixed,
-                currentIndex: _counter,
-                onTap: (int index) {
-                  if (index == 1) {
-                    _navigateToMapUi(context, data.go.station, widget.route);
-                  }
-                  setState(() => _counter = index);
-                },
-                selectedItemColor: Colors.blue,
-                items: const <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(
-                    icon: Icon(Ionicons.storefront_outline),
-                    label: 'Điểm dừng',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Ionicons.map),
-                    label: "Bản đồ",
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Ionicons.bus),
-                    label: "Lộ trình",
-                  ),
-                  BottomNavigationBarItem(
-                      icon: Icon(Ionicons.alarm_outline),
-                      label: "Giờ"
-                  ),
-                ]
-            );
-          }
-          return Center(child: CircularProgressIndicator(),);
-        }
-      )
+                return BottomNavigationBar(
+                    type: BottomNavigationBarType.fixed,
+                    currentIndex: _counter,
+                    onTap: (int index) {
+                      if (index == 1) {
+                        _navigateToMapUi(
+                            context, data.go.station, widget.route);
+                      }
+                      setState(() => _counter = index);
+                    },
+                    selectedItemColor: Colors.blue,
+                    items: const <BottomNavigationBarItem>[
+                      BottomNavigationBarItem(
+                        icon: Icon(Ionicons.storefront_outline),
+                        label: 'Điểm dừng',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Ionicons.map),
+                        label: "Bản đồ",
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Ionicons.bus),
+                        label: "Lộ trình",
+                      ),
+                      BottomNavigationBarItem(
+                          icon: Icon(Ionicons.alarm_outline), label: "Giờ"),
+                    ]);
+              }
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            })
     );
   }
 }
 
 class busStop extends StatelessWidget {
-  
   busStop(this.data);
   Dt data;
-  
+
   @override
   Widget build(BuildContext context) {
-    return  Container(
-        child: ListView.separated(
+    return Container(
+      child: SingleChildScrollView(
           scrollDirection: Axis.vertical,
-          shrinkWrap: true,
-          itemCount: data.go.station.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              leading: Icon(Ionicons.arrow_down, color: Colors.green,),
-              title: Text(data.go.station[index].Name),
-              trailing: Icon(Ionicons.walk, color: Colors.blue,),
-            );
-          },
-          separatorBuilder: (context, index) {
-            return Divider();
-          },
-        )
+          child: Column(
+            children: [
+              for (var station in data.go.station)
+                Wrap(
+                  children: [
+                    ListTile(
+                      leading: Icon(
+                        Ionicons.arrow_down,
+                        color: Colors.green,
+                      ),
+                      title: Text(station.Name),
+                      trailing: Icon(
+                        Ionicons.walk,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    Divider()
+                  ],
+                )
+            ],
+          )),
     );
   }
 }
@@ -234,31 +239,60 @@ class routeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       child: Padding(
-        padding: EdgeInsets.only(right: 20, left: 20),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Đơn vị chủ quản: ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data.Enterprise,style: TextStyle(fontSize: 16),),
-              Divider(),
-              Text("Giá vé: ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data.Cost,style: TextStyle(fontSize: 16),),
-              Divider(),
-              Text("Tần suất chạy: ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data.Frequency,style: TextStyle(fontSize: 16),),
-              Divider(),
-              Text("Lộ trình (chiều đi): ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data.go.Route,style: TextStyle(fontSize: 16),),
-              Divider(),
-              Text("Lộ trình (chiều về): ", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-              Text(data.re.Route,style: TextStyle(fontSize: 16),),
-              Divider(),
-            ],
-          ),
-        )
-      ),
+          padding: EdgeInsets.only(right: 20, left: 20),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Đơn vị chủ quản: ",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  data.Enterprise,
+                  style: TextStyle(fontSize: 16),
+                ),
+                Divider(),
+                Text(
+                  "Giá vé: ",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  data.Cost,
+                  style: TextStyle(fontSize: 16),
+                ),
+                Divider(),
+                Text(
+                  "Tần suất chạy: ",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  data.Frequency,
+                  style: TextStyle(fontSize: 16),
+                ),
+                Divider(),
+                Text(
+                  "Lộ trình (chiều đi): ",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  data.go.Route,
+                  style: TextStyle(fontSize: 16),
+                ),
+                Divider(),
+                Text(
+                  "Lộ trình (chiều về): ",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  data.re.Route,
+                  style: TextStyle(fontSize: 16),
+                ),
+                Divider(),
+              ],
+            ),
+          )),
     );
   }
 }
@@ -270,7 +304,13 @@ class busTime extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String title = "",span1 = "", span2 = "", span3 = "", time1 = "", time2 = "", time3 = "";
+    String title = "",
+        span1 = "",
+        span2 = "",
+        span3 = "",
+        time1 = "",
+        time2 = "",
+        time3 = "";
     var timeList = data.OperationsTime.split("###");
     var goTimeList = timeList[0].split(";");
     var backTimeList = timeList[1].split(";");
@@ -280,14 +320,13 @@ class busTime extends StatelessWidget {
       span1 = goTimeList[0];
       span2 = goTimeList[1];
       span3 = goTimeList[2];
-    }
-    else if (direction == "back") {
+    } else if (direction == "back") {
       title = "Chiều " + data.LastStation;
       span1 = backTimeList[0];
       span2 = backTimeList[1];
       span3 = backTimeList[2];
     }
-    
+
     time1 = span1.split("|")[2];
     time2 = span2.split("|")[2];
     time3 = span3.split("|")[2];
@@ -296,13 +335,19 @@ class busTime extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: 86),
-          Text(title, style: TextStyle(fontWeight: FontWeight.bold),),
+          Text(
+            title,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Thứ 2-6: "),
-              Text(time1, style: TextStyle(fontStyle: FontStyle.italic),)
+              Text(
+                time1,
+                style: TextStyle(fontStyle: FontStyle.italic),
+              )
             ],
           ),
           SizedBox(height: 10),
@@ -310,7 +355,10 @@ class busTime extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Thứ 7: "),
-              Text(time2, style: TextStyle(fontStyle: FontStyle.italic),)
+              Text(
+                time2,
+                style: TextStyle(fontStyle: FontStyle.italic),
+              )
             ],
           ),
           SizedBox(height: 10),
@@ -318,10 +366,15 @@ class busTime extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Chủ nhật: "),
-              Text(time3, style: TextStyle(fontStyle: FontStyle.italic),)
+              Text(
+                time3,
+                style: TextStyle(fontStyle: FontStyle.italic),
+              )
             ],
           ),
-          SizedBox(height: 86,)
+          SizedBox(
+            height: 86,
+          )
         ],
       ),
     );
@@ -350,9 +403,7 @@ class IdDt {
     print(list.runtimeType);
     List<IdData> dataList = list.map((i) => IdData.fromJson(i)).toList();
 
-    return IdDt(
-      data: dataList
-    );
+    return IdDt(data: dataList);
   }
 }
 
@@ -362,10 +413,7 @@ class IdData {
   IdData({this.ObjectId});
 
   factory IdData.fromJson(Map<String, dynamic> json) {
-
-    return IdData(
-      ObjectId: json["ObjectID"]
-    );
+    return IdData(ObjectId: json["ObjectID"]);
   }
 }
 
@@ -393,7 +441,18 @@ class Dt {
   Re re;
   String OperationsTime;
 
-  Dt({this.Enterprise, this.Code, this.Name, this.Frequency, this.BusCount, this.Cost, this.FirstStation, this.LastStation, this.go, this.re, this.OperationsTime});
+  Dt(
+      {this.Enterprise,
+      this.Code,
+      this.Name,
+      this.Frequency,
+      this.BusCount,
+      this.Cost,
+      this.FirstStation,
+      this.LastStation,
+      this.go,
+      this.re,
+      this.OperationsTime});
 
   factory Dt.fromJson(Map<String, dynamic> json) {
     return Dt(
@@ -423,10 +482,7 @@ class Go {
     print(list.runtimeType);
     List<Station> stationList = list.map((i) => Station.fromJson(i)).toList();
 
-    return Go(
-      Route: json["Route"],
-      station: stationList
-    );
+    return Go(Route: json["Route"], station: stationList);
   }
 }
 
@@ -441,10 +497,7 @@ class Re {
     print(list.runtimeType);
     List<Station> stationList = list.map((i) => Station.fromJson(i)).toList();
 
-    return Re(
-        Route: json["Route"],
-        station: stationList
-    );
+    return Re(Route: json["Route"], station: stationList);
   }
 }
 
@@ -456,10 +509,9 @@ class Station {
   Station({this.Name, this.FleetOver, this.geo});
   factory Station.fromJson(Map<String, dynamic> json) {
     return Station(
-      Name: json["Name"],
-      FleetOver: json['FleetOver'],
-      geo: Geo.fromJson(json["Geo"])
-    );
+        Name: json["Name"],
+        FleetOver: json['FleetOver'],
+        geo: Geo.fromJson(json["Geo"]));
   }
 }
 
@@ -470,11 +522,6 @@ class Geo {
   Geo({this.Lat, this.Lng});
 
   factory Geo.fromJson(Map<String, dynamic> json) {
-    return Geo(
-        Lat: json["Lat"],
-        Lng: json["Lng"]
-    );
+    return Geo(Lat: json["Lat"], Lng: json["Lng"]);
   }
 }
-
-

@@ -130,14 +130,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<List<Dt>> getData() async {
+    String slat = start.location.latitude.toString();
+    String slng = start.location.longitude.toString();
     Map<String, String> body = {
       'act': 'route',
       'opts': "2",
-      'slng' : start.location.longitude.toString(),
-      'slat' : start.location.latitude.toString(),
+      'slng' : slng,
+      'slat' : slat,
       'elng' : destination.location.longitude.toString(),
       'elat' : destination.location.latitude.toString(),
     };
+
     final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
       body: body,
       headers: {
