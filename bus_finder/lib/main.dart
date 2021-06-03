@@ -1,5 +1,4 @@
 import 'package:bus_finder/find_stop.dart';
-import 'package:bus_finder/find_stop.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
@@ -14,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:async';
 import 'dart:convert';
+import 'package:wemapgl/wemapgl.dart';
 
 import 'package:wemapgl/wemapgl.dart' as WEMAP;
 
@@ -55,9 +55,15 @@ List<String> bus_route_search = [];
 List<String> bus_stop_base = [];
 List<String> bus_stop_search = [];
 
+LatLng cityCenter = LatLng(21.02880, 105.85212);
+
+WeMapController mapController;
+WeMapPlace start;
+WeMapPlace destination;
+
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  Future<Data> _futureData;
+  Future<List<Dt>> pathsList;
 
   Future<String> loadJsonStopData() async {
     var jsonText = await rootBundle.loadString('assets/busstop.json');
@@ -88,12 +94,6 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     loadJsonRouteData();
     loadJsonStopData();
-  }
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
   }
 
   void update() {
@@ -129,20 +129,31 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<Data> getData() async {
-    final response = await http.post(
-      Uri.parse(
-          'https://busroutes.azurewebsites.net/api/routes?fbclid=IwAR19GRyS4XjetGmzVTrjQxrDil2NBNY3kfSbfscGaNDab9NXOYqecdF-3OQ'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
+  Future<List<Dt>> getData() async {
+    Map<String, String> body = {
+      'act': 'route',
+      'opts': "2",
+      'slng' : start.location.longitude.toString(),
+      'slat' : start.location.latitude.toString(),
+      'elng' : destination.location.longitude.toString(),
+      'elat' : destination.location.latitude.toString(),
+    };
+    final response = await http.post("http://timbus.vn/Engine/Business/Search/action.ashx",
+      body: body,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": "http://timbus.vn/",
       },
-      body: jsonEncode(<String, String>{}),
     );
 
     if (response.statusCode == 200) {
       // If the server did return a 201 CREATED response,
       // then parse the JSON.
-      return Data.fromJson(jsonDecode(response.body));
+      print(response.body);
+      var jsoninfo = JsonInfo.fromJson(jsonDecode(response.body));
+
+      return jsoninfo.dt;
     } else {
       // If the server did not return a 201 CREATED response,
       // then throw an exception.
@@ -163,7 +174,7 @@ class _MyHomePageState extends State<MyHomePage> {
       widget3 = Column(
         children: [
           Padding(
-            padding: EdgeInsets.only(top: 10, bottom: 60),
+            padding: EdgeInsets.only(top: 10, bottom: 10),
             child: ButtonTheme(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
@@ -173,7 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: RaisedButton(
                 onPressed: () {
                   setState(() {
-                    _futureData = getData();
+                    pathsList = getData();
                   });
                 },
                 child: Text(
@@ -184,7 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           Container(
-            child: (_futureData == null) ? Column() : buildFutureBuilder(),
+            child: (pathsList == null) ? Column() : buildFutureBuilder(),
           ),
         ],
       );
@@ -350,17 +361,61 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  FutureBuilder<Data> buildFutureBuilder() {
-    return FutureBuilder<Data>(
-      future: _futureData,
+  FutureBuilder<List<Dt>> buildFutureBuilder() {
+    return FutureBuilder<List<Dt>>(
+      future: pathsList,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
+          var data = snapshot.data;
           return Padding(
-            padding: EdgeInsets.only(left: 30, right: 30),
-            child: Wrap(
+            padding: EdgeInsets.only(left: 15, right: 15),
+            child: Column(
               children: [
-                Text("Quãng đường cần đi:   " + snapshot.data.distance.toString() + " km", style: TextStyle(fontSize: 18),),
-                Text("Đầu tiên đi tới: " + snapshot.data.path[0].name, style: TextStyle(fontSize: 18),)
+                for (var path in data)
+                  Wrap(
+                    children: [
+                      Container(
+                        color: Colors.grey,
+                        child: Row(
+                          children: [
+                            Text("PA." + data.indexOf(path).toString(), style: TextStyle(color: Colors.blueAccent),),
+                            for (var result in path.result)
+                              Wrap(
+                                children: [
+                                  Icon(Ionicons.car_outline),
+                                  for (var fleet in result.Fleet)
+                                    Text(fleet),
+                                ],
+                              ),
+                            Align(
+                              alignment: Alignment.topRight,
+                              child: Text((path.DistTotal - path.DistWalk).toString() + "m"),
+                            )
+                          ],
+                        ),
+                      ),
+                      Text(path.start.Address),
+                      for (var result in path.result)
+                        Wrap(
+                          children: [
+                            Divider(),
+                            Text(result.start.Name, style: TextStyle(color: Colors.green),),
+                            Row(
+                              children: [
+                                Icon(Ionicons.bus),
+                                Text("Đi bus tuyến "),
+                                for (var fleet in result.Fleet)
+                                  Text(fleet, style: TextStyle(fontWeight: FontWeight.bold),)
+                              ],
+                            ),
+                            Text("Khoảng " + result.Distance.toString() + "m ~ " + result.Time.toString() + " giây" ),
+                            Text(result.end.Name, style: TextStyle(color: Colors.red),),
+                          ],
+                        ),
+                      Text(path.end.Address),
+                      Divider()
+                    ],
+                  )
               ],
             ),
           );
@@ -374,46 +429,135 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class Data {
-  final double distance;
-  final List<Path> path;
+class JsonInfo {
+  List<Dt> dt;
 
-  Data({this.distance, this.path});
+  JsonInfo({this.dt});
 
-  factory Data.fromJson(Map<String, dynamic> json) {
-    var list = json['path'] as List;
+  factory JsonInfo.fromJson(Map<String, dynamic> json) {
+    var list = json['dt'] as List;
     print(list.runtimeType);
-    List<Path> pathsList = list.map((i) => Path.fromJson(i)).toList();
-    return Data(
-      distance: json['distance'],
-      path: pathsList,
+    List<Dt> dtList = list.map((i) => Dt.fromJson(i)).toList();
+    return JsonInfo(
+      dt: dtList,
     );
   }
 }
 
-class Path {
-  final String name;
-  final Location location;
+class Dt {
+  Start start;
+  List<Result> result;
+  End end;
+  int DistTotal;
+  int DistWalk;
 
-  Path({this.name, this.location});
+  Dt({this.start, this.result, this.end, this.DistTotal, this.DistWalk});
 
-  factory Path.fromJson(Map<String, dynamic> json) {
-    return Path(
-      name: json['name'],
-      location: Location.fromJson(json['location']),
+  factory Dt.fromJson(Map<String, dynamic> json) {
+    var list = json['Result'] as List;
+    print(list.runtimeType);
+    List<Result> resultList = list.map((i) => Result.fromJson(i)).toList();
+    return Dt(
+      start: Start.fromJson(json["Start"]),
+      result: resultList,
+      end: End.fromJson(json["End"]),
+      DistTotal: json["DistTotal"],
+      DistWalk: json["DistWalk"]
     );
   }
 }
 
-class Location {
-  final double lattitude;
-  final double longitude;
+class Start {
+  String Address;
+  Geo geo;
+  int Distance;
 
-  Location({this.lattitude, this.longitude});
-  factory Location.fromJson(Map<String, dynamic> json) {
-    return Location(
-      lattitude: json['lattitude'],
-      longitude: json['longitude'],
+  Start({this.Address, this.geo, this.Distance});
+
+  factory Start.fromJson(Map<String, dynamic> json) {
+    return Start(
+        Address: json["Address"],
+        geo: Geo.fromJson(json["Geo"]),
+        Distance: json["Distance"]
+    );
+  }
+}
+
+class End {
+  String Address;
+  Geo geo;
+  int Distance;
+
+  End({this.Address, this.geo, this.Distance});
+
+  factory End.fromJson(Map<String, dynamic> json) {
+    return End(
+        Address: json["Address"],
+        geo: Geo.fromJson(json["Geo"]),
+        Distance: json["Distance"]
+    );
+  }
+}
+
+class Geo {
+  double Lat;
+  double Lng;
+
+  Geo({this.Lat, this.Lng});
+
+  factory Geo.fromJson(Map<String, dynamic> json) {
+    return Geo(
+        Lat: json["Lat"],
+        Lng: json["Lng"]
+    );
+  }
+}
+
+class Result {
+  List<String> Fleet;
+  ResultStart start;
+  ResultEnd end;
+  int DistanceWalk;
+  int Distance;
+  int Time;
+  
+  Result({this.Fleet, this.start, this.end, this.DistanceWalk, this.Distance, this.Time});
+
+  factory Result.fromJson(Map<String, dynamic> json) {
+    var list = json['Fleet'] as List;
+    print(list.runtimeType);
+    List<String> fleetList = list.map((i) => i).toList();
+    return Result(
+      Fleet: fleetList,
+      start: ResultStart.fromJson(json["Start"]),
+      end: ResultEnd.fromJson(json["End"]),
+      DistanceWalk: json["DistanceWalk"],
+      Distance: json["Distance"],
+      Time: json["Time"]
+    );
+  }
+}
+
+class ResultStart {
+  String Name;
+  
+  ResultStart({this.Name});
+
+  factory ResultStart.fromJson(Map<String, dynamic> json) {
+    return ResultStart(
+      Name: json["Name"]
+    );
+  }
+}
+
+class ResultEnd {
+  String Name;
+
+  ResultEnd({this.Name});
+
+  factory ResultEnd.fromJson(Map<String, dynamic> json) {
+    return ResultEnd(
+        Name: json["Name"]
     );
   }
 }
@@ -576,51 +720,56 @@ class BusStopList extends StatelessWidget {
   }
 }
 
-class StartPointBar extends StatelessWidget {
+class StartPointBar extends StatefulWidget {
+  StartPointBar();
+
+  _StartPointBar createState() => _StartPointBar();
+}
+
+class _StartPointBar extends State<StartPointBar> {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.all(15),
-          child: TextField(
-            decoration: InputDecoration(
-                prefixIcon: Icon(Ionicons.location_outline),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                hintText: 'Điểm đi'),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(bottom: 10, top: 10),
-          child: Icon(
-            Ionicons.arrow_down_circle_sharp,
-            size: 30,
-          ),
-        )
-      ],
+    return WeMapSearchBar(
+      location: cityCenter,
+      hintText: "Điểm đi",
+      onSelected: (_place) {
+        setState(() {
+          start = _place;
+        });
+      },
+      onClearInput: () {
+        setState(() {
+          start = null;
+        });
+      },
     );
   }
 }
 
-class EndPointBar extends StatelessWidget {
+class EndPointBar extends StatefulWidget {
+  EndPointBar();
+
+  _EndPointBar createState() => _EndPointBar();
+}
+
+class _EndPointBar extends State<EndPointBar> {
   void findWay() {}
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.all(15),
-          child: TextField(
-            decoration: InputDecoration(
-                prefixIcon: Icon(Ionicons.arrow_forward_circle_outline),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                hintText: 'Điểm đi'),
-          ),
-        ),
-      ],
+    return WeMapSearchBar(
+      location: cityCenter,
+      hintText: "Điểm đến",
+      onSelected: (_place) {
+        setState(() {
+          destination = _place;
+        });
+      },
+      onClearInput: () {
+        setState(() {
+          start = null;
+        });
+      },
     );
   }
 }
