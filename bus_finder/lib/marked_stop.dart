@@ -49,7 +49,6 @@ class MarkedStopState extends State<MarkedStop> {
   void _onMapCreated(WeMapController controller) {
     mapController = controller;
     mapController.onSymbolTapped.add(_onSymbolTapped);
-    _add("images/mark-location.png", stopLatLng );
   }
 
   @override
@@ -86,6 +85,8 @@ class MarkedStopState extends State<MarkedStop> {
   }
 
   void onStyleLoadedCallback() async {
+    _add("images/mark-location.png", stopLatLng );
+
     final json = await directionAPI.getResponseMultiRoute(
         0, points); //0 = car, 1 = bike, 2 = foot
     List<LatLng> _route = directionAPI.getRoute(json);
